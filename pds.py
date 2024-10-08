@@ -1,4 +1,5 @@
 import sys
+import os
 import pickle
 
 import pathlib
@@ -16,29 +17,30 @@ def iterator():
 
 it = iterator()
 
+output = print if os.isatty(sys.stdout.fileno()) else lambda o: pickle.dump(o, sys.stdout.buffer)
+
 match mode:
     case '--none':
         r = eval(expr, {'pathlib': pathlib})
         if hasattr(r, '__next__'):
             for e in r:
-                pickle.dump(e, sys.stdout.buffer)
+                output(e)
         else:
-            pickle.dump(r, sys.stdout.buffer)
+            output(r)
     case '--each':
         for x in it:
             y = eval(expr, {'pathlib': pathlib}, {'x': x})
-            pickle.dump(y, sys.stdout.buffer)
+            output(y)
     case '--filter':
         for x in it:
             f = eval(expr, {'pathlib': pathlib}, {'x': x})
             if f:
-                pickle.dump(x, sys.stdout.buffer)
+                output(x)
     case '--iter':
         r = eval(expr, {'it': it})
         if hasattr(r, '__next__'):
             for e in r:
-                pickle.dump(e, sys.stdout.buffer)
+                output(e)
         else:
-            pickle.dump(r, sys.stdout.buffer)
+            output(r)
                 
-
