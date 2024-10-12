@@ -8,19 +8,39 @@ import pathlib
 parser = argparse.ArgumentParser(prog='pds')
 parser.add_argument('mode', choices=('none', 'each', 'filter', 'iter'))
 parser.add_argument('expression')
-args = parser.parse_args(sys.argv[1:])
+parser.add_argument('--input', choices=('object', 'text'), default='object')
+parser.add_argument('--output', choices=('object', 'text'), default='object')
+args = parser.parse_args()
+
+if os.isatty(sys.stdout.fileno()):
+    args.output = 'text'
+
+def read_line():
+    l = sys.stdin.readline().strip()
+    if not l:
+        raise EOFError
+    return l
+
+match args.input:
+    case 'object':
+        input = lambda: pickle.load(sys.stdin.buffer)
+    case 'text':
+        input = read_line
+
+match args.output:
+    case 'object':
+        output = lambda o: pickle.dump(o, sys.stdout.buffer)
+    case 'text':
+        output = print
 
 def iterator():
     while True:
         try:
-            x = pickle.load(sys.stdin.buffer)
-            yield x
+            yield input()
         except EOFError:
             break
 
 it = iterator()
-
-output = print if os.isatty(sys.stdout.fileno()) else lambda o: pickle.dump(o, sys.stdout.buffer)
 
 match args.mode:
     case 'none':
