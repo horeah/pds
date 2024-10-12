@@ -51,12 +51,12 @@ match args.mode:
         else:
             output(r)
     case 'each':
-        for x in it:
-            y = eval(args.expression, {'pathlib': pathlib}, {'x': x})
+        for i, x in enumerate(it):
+            y = eval(args.expression, {'pathlib': pathlib}, {'i': i, 'x': x})
             output(y)
     case 'filter':
-        for x in it:
-            f = eval(args.expression, {'pathlib': pathlib}, {'x': x})
+        for i, x in enumerate(it):
+            f = eval(args.expression, {'pathlib': pathlib}, {'i': i, 'x': x})
             if f:
                 output(x)
     case 'iter':
