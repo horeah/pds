@@ -6,7 +6,7 @@ import argparse
 import pathlib
 
 parser = argparse.ArgumentParser(prog='pds')
-parser.add_argument('mode', choices=('none', 'each', 'filter', 'iter'))
+parser.add_argument('mode', choices=('none', 'each', 'filter', 'iter', 'list'))
 parser.add_argument('expression')
 parser.add_argument('--input', choices=('object', 'text'), default='object')
 parser.add_argument('--output', choices=('object', 'text'), default='object')
@@ -59,11 +59,11 @@ match args.mode:
             f = eval(args.expression, {'pathlib': pathlib}, {'i': i, 'x': x})
             if f:
                 output(x)
-    case 'iter':
-        r = eval(args.expression, {'it': it})
-        if hasattr(r, '__next__'):
+    case 'iter' | 'list':
+        r = eval(args.expression, {'it': it} if args.mode == 'iter' else {'l': list(it)})
+        try:
             for e in r:
                 output(e)
-        else:
+        except TypeError:
             output(r)
                 
