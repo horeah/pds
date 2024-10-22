@@ -1,2 +1,2 @@
 @echo off
-python pds.py %*
+python "%~dp0\pds.py" %*

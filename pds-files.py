@@ -18,4 +18,4 @@ for p in args.path:
         pattern = '**/*' if args.recursive else '*'
         expression += f'.glob("{pattern}")'
     sys.argv = ['pds.py', 'none', expression]
-    exec(open('pds.py').read(), globals(), {})
+    exec(open(Path(__file__).parent / 'pds.py').read(), globals(), {})
