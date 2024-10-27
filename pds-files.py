@@ -1,6 +1,7 @@
 import sys
 import pickle
 import argparse
+import os
 from pathlib import Path
 from itertools import chain
 
@@ -31,7 +32,11 @@ else:
         else:
             paths = chain(paths, iter((path,)))
 
-pds_code = open(Path(__file__).parent / 'pds.py').read()
+
+if os.isatty(sys.stdout.fileno()):
+    output = print
+else:
+    output = lambda obj: pickle.dump(obj, sys.stdout.buffer)
+
 for path in paths:
-    sys.argv = ['pds.py', 'none', f'pathlib.Path("{path.as_posix()}")']
-    exec(pds_code, globals(), {})
+    output(path)
