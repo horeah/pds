@@ -2,8 +2,8 @@ import sys
 import os
 import pickle
 import argparse
-
-import pathlib
+import ast
+import importlib
 
 parser = argparse.ArgumentParser(prog='pds')
 parser.add_argument('mode', choices=('none', 'each', 'filter', 'iter', 'list'))
@@ -33,6 +33,29 @@ match args.output:
     case 'text':
         output = print
 
+def extract_modules(expr):
+    class ModuleExtractor(ast.NodeVisitor):
+        def __init__(self):
+            self.modules = []
+
+        def generic_visit(self, node):
+            if (isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name)
+                and not node.value.id in {'i', 'x', 'it', 'l'}):
+                    self.modules.append(node.value.id)
+            super().generic_visit(node)
+
+    extractor = ModuleExtractor()
+    extractor.visit(ast.parse(expr))
+    return extractor.modules
+
+modules = {}
+for module in extract_modules(args.expression):
+    try:
+        modules[module] = importlib.import_module(module)
+    except ModuleNotFoundError:
+        pass
+    
 def iterator():
     while True:
         try:
@@ -44,7 +67,7 @@ it = iterator()
 
 match args.mode:
     case 'none':
-        r = eval(args.expression, {'pathlib': pathlib})
+        r = eval(args.expression, modules)
         if hasattr(r, '__next__'):
             for e in r:
                 output(e)
@@ -52,15 +75,15 @@ match args.mode:
             output(r)
     case 'each':
         for i, x in enumerate(it):
-            y = eval(args.expression, {'pathlib': pathlib}, {'i': i, 'x': x})
+            y = eval(args.expression, modules, {'i': i, 'x': x})
             output(y)
     case 'filter':
         for i, x in enumerate(it):
-            f = eval(args.expression, {'pathlib': pathlib}, {'i': i, 'x': x})
+            f = eval(args.expression, modules, {'i': i, 'x': x})
             if f:
                 output(x)
     case 'iter' | 'list':
-        r = eval(args.expression, {'it': it} if args.mode == 'iter' else {'l': list(it)})
+        r = eval(args.expression, modules, {'it': it} if args.mode == 'iter' else {'l': list(it)})
         try:
             for e in r:
                 output(e)

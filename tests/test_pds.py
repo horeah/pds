@@ -43,6 +43,9 @@ class TestPds(unittest.TestCase):
                          [line.upper() for line in input_lines])
         self.assertEqual(pds_text('iter', 'len(list(it))', input_lines),
                          ['3'])
+        self.assertEqual(pds_text('iter', 'itertools.islice(it, 2)', input_lines),
+                         input_lines[:2])
+
 
     def test_list(self):
         self.assertEqual(pds_text('list', 'l', input_lines),
