@@ -5,6 +5,7 @@ import argparse
 import ast
 import importlib
 
+
 def main():
     parser = argparse.ArgumentParser(prog='pds')
     parser.add_argument('mode', choices=('none', 'each', 'filter', 'iter', 'list'))
@@ -90,7 +91,18 @@ def main():
                     output(e)
             except TypeError:
                 output(r)
-                
+
+
+class _DummyContext(object):
+    """
+    No-op context replacement (to allow pickling) for e.g. psutil.Process._lock
+    """
+    def __enter__(*args):
+        pass
+
+    def __exit__(*args):
+        pass
+
 
 if __name__ == '__main__':
     main()
