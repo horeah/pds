@@ -18,10 +18,10 @@ def main():
         args.output = 'text'
 
     def read_line():
-        l = sys.stdin.readline().strip()
+        l = sys.stdin.readline()
         if not l:
             raise EOFError
-        return l
+        return l.strip()
 
     match args.input:
         case 'object':

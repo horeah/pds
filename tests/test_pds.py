@@ -7,12 +7,11 @@ from os import linesep
 def pds_text(mode, expr, lines):
     process = Popen([sys.executable, 'pds.py', mode, '--input=text', '--output=text', expr],
                     stdin=PIPE, stdout=PIPE, text=True)
-    stdout, _ = process.communicate('\n'.join(lines))
-    return stdout.rstrip('\n').split('\n')
+    stdout, _ = process.communicate(''.join(l + '\n' for l in lines))
+    return stdout.split('\n')[:-1]
 
 
-input_lines = ['line1', 'line2', 'long line 3']
-
+input_lines = ['line1', '', 'line2', 'long line 3', '']
 
 class TestPds(unittest.TestCase):
     """
@@ -42,7 +41,7 @@ class TestPds(unittest.TestCase):
         self.assertEqual(pds_text('iter', '(x.upper() for x in it)', input_lines),
                          [line.upper() for line in input_lines])
         self.assertEqual(pds_text('iter', 'len(list(it))', input_lines),
-                         ['3'])
+                         [str(len(input_lines))])
         self.assertEqual(pds_text('iter', 'itertools.islice(it, 2)', input_lines),
                          input_lines[:2])
 
@@ -51,7 +50,7 @@ class TestPds(unittest.TestCase):
         self.assertEqual(pds_text('list', 'l', input_lines),
                          input_lines)
         self.assertEqual(pds_text('list', 'len(l)', input_lines),
-                         ['3'])
+                         [str(len(input_lines))])
 
 
 if __name__ == '__main__':
