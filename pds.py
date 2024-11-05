@@ -12,6 +12,7 @@ def main():
     parser.add_argument('expression')
     parser.add_argument('--input', choices=('object', 'text'), default='object')
     parser.add_argument('--output', choices=('object', 'text'), default='object')
+    parser.add_argument('-E', '--ignore-exceptions', action='store_true')
     args = parser.parse_args()
 
     if os.isatty(sys.stdout.fileno()):
@@ -34,6 +35,28 @@ def main():
             output = lambda o: pickle.dump(o, sys.stdout.buffer)
         case 'text':
             output = print
+
+    if args.ignore_exceptions:
+        _EXCEPTION_IN_EXPRESSION = object()
+
+        def eval_expr_mark_exceptions(expr, globals, locals):
+            """Eval expression and return a marker value if an exception was raised"""
+            try:
+                return eval(expr, globals, locals)
+            except Exception as e:
+                return _EXCEPTION_IN_EXPRESSION
+
+        def ignore_exception_marker(func):
+            """Don't call the target function if the argument is an exception marker"""
+            def wrapper(arg):
+                if arg != _EXCEPTION_IN_EXPRESSION:
+                    func(arg)
+            return wrapper
+
+        eval_expr = eval_expr_mark_exceptions
+        output = ignore_exception_marker(output)
+    else:
+        eval_expr = lambda expr, globals, locals: eval(expr, globals, locals)
 
     def extract_modules(expr):
         class ModuleExtractor(ast.NodeVisitor):
@@ -69,7 +92,7 @@ def main():
 
     match args.mode:
         case 'none':
-            r = eval(args.expression, modules)
+            r = eval_expr(args.expression, modules, locals())
             if hasattr(r, '__next__'):
                 for e in r:
                     output(e)
@@ -77,15 +100,16 @@ def main():
                 output(r)
         case 'each':
             for i, x in enumerate(it):
-                y = eval(args.expression, modules, {'i': i, 'x': x})
+                y = eval_expr(args.expression, modules, {'i': i, 'x': x})
                 output(y)
         case 'filter':
             for i, x in enumerate(it):
-                f = eval(args.expression, modules, {'i': i, 'x': x})
+                f = eval_expr(args.expression, modules, {'i': i, 'x': x})
                 if f:
                     output(x)
         case 'iter' | 'list':
-            r = eval(args.expression, modules, {'it': it} if args.mode == 'iter' else {'l': list(it)})
+            r = eval_expr(args.expression, modules,
+                          {'it': it} if args.mode == 'iter' else {'l': list(it)})
             try:
                 for e in r:
                     output(e)
