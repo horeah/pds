@@ -58,6 +58,15 @@ def main():
     else:
         eval_expr = lambda expr, globals, locals: eval(expr, globals, locals)
 
+    orig_stderr_write = sys.stderr.write
+    def write_until_broken_pipe(str):
+        if str.startswith("Exception ignored in"):
+            # Consumer has terminated
+            sys.stderr.write = None
+        else:
+            orig_stderr_write(str)
+    sys.stderr.write = write_until_broken_pipe
+
     def extract_modules(expr):
         class ModuleExtractor(ast.NodeVisitor):
             def __init__(self):
@@ -90,31 +99,35 @@ def main():
 
     it = iterator()
 
-    match args.mode:
-        case 'none':
-            r = eval_expr(args.expression, modules, locals())
-            if hasattr(r, '__next__'):
-                for e in r:
-                    output(e)
-            else:
-                output(r)
-        case 'each':
-            for i, x in enumerate(it):
-                y = eval_expr(args.expression, modules, {'i': i, 'x': x})
-                output(y)
-        case 'filter':
-            for i, x in enumerate(it):
-                f = eval_expr(args.expression, modules, {'i': i, 'x': x})
-                if f:
-                    output(x)
-        case 'iter' | 'list':
-            r = eval_expr(args.expression, modules,
-                          {'it': it} if args.mode == 'iter' else {'l': list(it)})
-            try:
-                for e in r:
-                    output(e)
-            except TypeError:
-                output(r)
+    try:
+        match args.mode:
+            case 'none':
+                r = eval_expr(args.expression, modules, locals())
+                if hasattr(r, '__next__'):
+                    for e in r:
+                        output(e)
+                else:
+                    output(r)
+            case 'each':
+                for i, x in enumerate(it):
+                    y = eval_expr(args.expression, modules, {'i': i, 'x': x})
+                    output(y)
+            case 'filter':
+                for i, x in enumerate(it):
+                    f = eval_expr(args.expression, modules, {'i': i, 'x': x})
+                    if f:
+                        output(x)
+            case 'iter' | 'list':
+                r = eval_expr(args.expression, modules,
+                              {'it': it} if args.mode == 'iter' else {'l': list(it)})
+                try:
+                    for e in r:
+                        output(e)
+                except TypeError:
+                    output(r)
+    except BrokenPipeError:
+        # Consumer has terminated
+        pass
 
 
 class _DummyContext(object):
