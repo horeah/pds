@@ -4,6 +4,7 @@ import argparse
 import os
 from pathlib import Path
 from itertools import chain
+from pds import _swallow_broken_pipe_message
 
 parser = argparse.ArgumentParser(prog='pds-files')
 parser.add_argument('path', nargs='*', default=[Path()], type=Path)
@@ -32,11 +33,17 @@ else:
         else:
             paths = chain(paths, iter((path,)))
 
-
 if os.isatty(sys.stdout.fileno()):
     output = print
 else:
     output = lambda obj: pickle.dump(obj, sys.stdout.buffer)
 
-for path in paths:
-    output(path)
+_swallow_broken_pipe_message()
+
+try:
+    for path in paths:
+        output(path)
+except BrokenPipeError:
+    # Consumer has terminated
+    pass
+

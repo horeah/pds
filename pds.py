@@ -58,15 +58,8 @@ def main():
     else:
         eval_expr = lambda expr, globals, locals: eval(expr, globals, locals)
 
-    orig_stderr_write = sys.stderr.write
-    def write_until_broken_pipe(str):
-        if str.startswith("Exception ignored in"):
-            # Consumer has terminated
-            sys.stderr.write = None
-        else:
-            orig_stderr_write(str)
-    sys.stderr.write = write_until_broken_pipe
-
+    _swallow_broken_pipe_message()
+    
     def extract_modules(expr):
         class ModuleExtractor(ast.NodeVisitor):
             def __init__(self):
@@ -139,6 +132,17 @@ class _DummyContext(object):
 
     def __exit__(*args):
         pass
+
+
+def _swallow_broken_pipe_message():
+    orig_stderr_write = sys.stderr.write
+    def write_until_broken_pipe(str):
+        if str.startswith("Exception ignored in"):
+            # Consumer has terminated
+            sys.stderr.write = None
+        else:
+            orig_stderr_write(str)
+    sys.stderr.write = write_until_broken_pipe
 
 
 if __name__ == '__main__':
