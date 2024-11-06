@@ -61,8 +61,8 @@ def main():
                 pass
         return modules
 
+    _EXCEPTION_IN_EXPRESSION = object()
     if args.ignore_exception:
-        _EXCEPTION_IN_EXPRESSION = object()
         modules = import_modules(args.ignore_exception)
         exc_type = eval(args.ignore_exception, modules)
 
@@ -114,7 +114,7 @@ def main():
             case 'filter':
                 for i, x in enumerate(it):
                     f = eval_expr(args.expression, modules, {'i': i, 'x': x})
-                    if f:
+                    if f and f != _EXCEPTION_IN_EXPRESSION:
                         output(x)
             case 'iter' | 'list':
                 r = eval_expr(args.expression, modules,

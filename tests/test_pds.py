@@ -54,6 +54,8 @@ class TestPds(unittest.TestCase):
     def test_exceptions(self):
         self.assertEqual(pds_text('each', 'int(x)', input_lines, opts=['--ignore-exception=ValueError']),
                          [line for line in input_lines if line.isnumeric()])
+        self.assertEqual(pds_text('filter', 'int(x) < 5', input_lines, opts=['--ignore-exception=ValueError']),
+                         [line for line in input_lines if line.isnumeric() and int(line) < 5])
         self.assertEqual(pds_text('each', 'INVALID(x)', input_lines, opts=['--ignore-exception=NameError']),
                          [])
 
