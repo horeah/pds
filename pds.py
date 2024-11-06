@@ -12,7 +12,7 @@ def main():
     parser.add_argument('expression')
     parser.add_argument('--input', choices=('object', 'text'), default='object')
     parser.add_argument('--output', choices=('object', 'text'), default='object')
-    parser.add_argument('-E', '--ignore-exceptions', action='store_true')
+    parser.add_argument('-E', '--ignore-exception', action='store')
     args = parser.parse_args()
 
     if os.isatty(sys.stdout.fileno()):
@@ -36,30 +36,6 @@ def main():
         case 'text':
             output = print
 
-    if args.ignore_exceptions:
-        _EXCEPTION_IN_EXPRESSION = object()
-
-        def eval_expr_mark_exceptions(expr, globals, locals):
-            """Eval expression and return a marker value if an exception was raised"""
-            try:
-                return eval(expr, globals, locals)
-            except Exception as e:
-                return _EXCEPTION_IN_EXPRESSION
-
-        def ignore_exception_marker(func):
-            """Don't call the target function if the argument is an exception marker"""
-            def wrapper(arg):
-                if arg != _EXCEPTION_IN_EXPRESSION:
-                    func(arg)
-            return wrapper
-
-        eval_expr = eval_expr_mark_exceptions
-        output = ignore_exception_marker(output)
-    else:
-        eval_expr = lambda expr, globals, locals: eval(expr, globals, locals)
-
-    _swallow_broken_pipe_message()
-    
     def extract_modules(expr):
         class ModuleExtractor(ast.NodeVisitor):
             def __init__(self):
@@ -76,12 +52,42 @@ def main():
         extractor.visit(ast.parse(expr))
         return extractor.modules
 
-    modules = {}
-    for module in extract_modules(args.expression):
-        try:
-            modules[module] = importlib.import_module(module)
-        except ModuleNotFoundError:
-            pass
+    def import_modules(expr):
+        modules = {}
+        for module in extract_modules(expr):
+            try:
+                modules[module] = importlib.import_module(module)
+            except ModuleNotFoundError:
+                pass
+        return modules
+
+    if args.ignore_exception:
+        _EXCEPTION_IN_EXPRESSION = object()
+        modules = import_modules(args.ignore_exception)
+        exc_type = eval(args.ignore_exception, modules)
+
+        def eval_expr_mark_exceptions(expr, globals, locals):
+            """Eval expression and return a marker value if an exception was raised"""
+            try:
+                return eval(expr, globals, locals)
+            except exc_type:
+                return _EXCEPTION_IN_EXPRESSION
+
+        def ignore_exception_marker(func):
+            """Don't call the target function if the argument is an exception marker"""
+            def wrapper(arg):
+                if arg != _EXCEPTION_IN_EXPRESSION:
+                    func(arg)
+            return wrapper
+
+        eval_expr = eval_expr_mark_exceptions
+        output = ignore_exception_marker(output)
+    else:
+        eval_expr = lambda expr, globals, locals: eval(expr, globals, locals)
+
+    _swallow_broken_pipe_message()
+    
+    modules = import_modules(args.expression)
 
     def iterator():
         while True:
