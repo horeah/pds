@@ -102,7 +102,7 @@ def main():
         match args.mode:
             case 'none':
                 r = eval_expr(args.expression, modules, locals())
-                if hasattr(r, '__next__'):
+                if hasattr(r, '__iter__') and not isinstance(r, str):
                     for e in r:
                         output(e)
                 else:
@@ -119,10 +119,10 @@ def main():
             case 'iter' | 'list':
                 r = eval_expr(args.expression, modules,
                               {'it': it} if args.mode == 'iter' else {'l': list(it)})
-                try:
+                if hasattr(r, '__iter__') and not isinstance(r, str):
                     for e in r:
                         output(e)
-                except TypeError:
+                else:
                     output(r)
     except BrokenPipeError:
         # Consumer has terminated
