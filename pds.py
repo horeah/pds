@@ -10,13 +10,17 @@ def main():
     parser = argparse.ArgumentParser(prog='pds')
     parser.add_argument('mode', choices=('none', 'each', 'filter', 'iter', 'list'))
     parser.add_argument('expression')
-    parser.add_argument('--input', choices=('object', 'text'), default='object')
-    parser.add_argument('--output', choices=('object', 'text'), default='object')
+    parser.add_argument('--input', choices=('auto', 'object', 'text'), default='auto')
+    parser.add_argument('--output', choices=('auto', 'object', 'text'), default='auto')
     parser.add_argument('-E', '--ignore-exception', action='store')
     args = parser.parse_args()
 
-    if os.isatty(sys.stdout.fileno()):
-        args.output = 'text'
+    if args.output == 'auto':
+        args.output = 'text' if os.isatty(sys.stdout.fileno()) else 'object'
+
+    if args.mode != 'none' and args.input == 'auto':
+        bytes = sys.stdin.buffer.peek(2)
+        args.input = 'object' if bytes.startswith(b'\x80\x04') else 'text'
 
     def read_line():
         l = sys.stdin.readline()
