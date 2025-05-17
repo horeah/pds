@@ -7,11 +7,10 @@ from subprocess import Popen, PIPE
 def pds_chain(cmds):
     segs = [[f'{sys.executable}', 'pds.py', *a] for a in cmds]
     tokens = []
-    for seg in segs[:-1]:
+    for seg in segs:
         tokens += seg
         tokens.append('|')
-    tokens += segs[-1]
-    tokens.append('--output=text')
+    tokens += ['pds', 'to-text']
     cmd = ' '.join(f'"{t}"' if t != '|' else f'{t}' for t in tokens)
     process = Popen(cmd, stdout=PIPE, shell=True, text=True)
     stdout, _ = process.communicate()

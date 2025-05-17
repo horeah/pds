@@ -8,12 +8,38 @@ import importlib
 
 def main():
     parser = argparse.ArgumentParser(prog='pds')
-    parser.add_argument('mode', choices=('none', 'each', 'filter', 'iter', 'list'))
-    parser.add_argument('expression')
     parser.add_argument('--input', choices=('auto', 'object', 'text'), default='auto')
     parser.add_argument('--output', choices=('auto', 'object', 'text'), default='auto')
-    parser.add_argument('-E', '--ignore-exception', action='store')
+    subparsers = parser.add_subparsers(dest='mode', title='modes')
+
+    parser_none = subparsers.add_parser('none', help='Create pds stream from expression')
+    parser_none.add_argument('expression', help='Expression to evaluate')
+    parser_none.add_argument('-e', '--ignore-exception', action='store')
+
+    parser_each = subparsers.add_parser('each', help='Apply expression to each object')
+    parser_each.add_argument('expression', help='Expression to apply')
+    parser_each.add_argument('-e', '--ignore-exception', action='store')
+
+    parser_filter = subparsers.add_parser('filter', help='Filter objects by expression')
+    parser_filter.add_argument('expression', help='Expression to filter by')
+    parser_filter.add_argument('-e', '--ignore-exception', action='store')
+
+    parser_iter = subparsers.add_parser('iter', help='Apply expression to whole input data as iterator')
+    parser_iter.add_argument('expression', help='Expression to apply')
+
+    parser_list = subparsers.add_parser('list', help='Apply expression to whole input data as list')
+    parser_list.add_argument('expression', help='Expression to apply')
+
+    parser_from_text = subparsers.add_parser('from-text', help='Create pds stream from input text')
+    parser_from_text.add_argument('-s', '--separator', help='Separator for text input', 
+                                  choices=('lf', 'cr', 'crlf', 'auto'), default='auto')
+    
+    parser_to_text = subparsers.add_parser('to-text', help='Write pds stream as text')
+    parser_to_text.add_argument('-s', '--separator', help='Separator for text output',
+                                 choices=('lf', 'cr', 'crlf', 'auto'), default='auto')
     args = parser.parse_args()
+    if not hasattr(args, 'ignore_exception'):
+        args.ignore_exception = False
 
     if args.output == 'auto':
         args.output = 'text' if os.isatty(sys.stdout.fileno()) else 'object'
@@ -22,23 +48,33 @@ def main():
         bytes = sys.stdin.buffer.peek(2)
         args.input = 'object' if bytes.startswith(b'\x80\x04') else 'text'
 
+    if args.mode in ['from-text', 'to-text']:
+        args.separator = {
+            'lf': '\n',
+            'cr': '\r',
+            'crlf': '\r\n',
+            'auto': None,
+        }[args.separator]
+    if args.mode == 'from-text':
+        sys.stdin.reconfigure(newline=args.separator)
+    if args.mode == 'to-text':
+        sys.stdout.reconfigure(newline=args.separator)
+
     def read_line():
         l = sys.stdin.readline()
         if not l:
             raise EOFError
         return l.strip()
 
-    match args.input:
-        case 'object':
-            input = lambda: pickle.load(sys.stdin.buffer)
-        case 'text':
-            input = read_line
-
-    match args.output:
-        case 'object':
-            output = lambda o: pickle.dump(o, sys.stdout.buffer)
-        case 'text':
-            output = print
+    if args.mode == 'from-text' or args.input == 'text':
+        input = read_line
+    else: 
+        input = lambda: pickle.load(sys.stdin.buffer)
+    
+    if args.mode == 'to-text' or args.output == 'text':
+        output = print
+    else:
+        output = lambda o: pickle.dump(o, sys.stdout.buffer)
 
     def extract_modules(expr):
         class ModuleExtractor(ast.NodeVisitor):
@@ -90,8 +126,6 @@ def main():
         eval_expr = lambda expr, globals, locals: eval(expr, globals, locals)
 
     _swallow_broken_pipe_message()
-    
-    modules = import_modules(args.expression)
 
     def iterator():
         while True:
@@ -101,6 +135,15 @@ def main():
                 break
 
     it = iterator()
+
+    if args.mode == 'from-text':
+        args.mode = 'each'
+        args.expression = 'x'
+    elif args.mode == 'to-text':
+        args.mode = 'each'
+        args.expression = 'x'
+
+    modules = import_modules(args.expression)
 
     try:
         match args.mode:
