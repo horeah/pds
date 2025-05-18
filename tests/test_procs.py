@@ -6,7 +6,7 @@ from subprocess import Popen, PIPE
 
 def pds_procs(*args):
     args_str = ' '.join([*args])
-    process = Popen(f'"{sys.executable}" pds-procs.py {args_str}', shell=True, stdout=PIPE)
+    process = Popen(f'"{sys.executable}" pds.py procs {args_str}', shell=True, stdout=PIPE)
     result = []
     while True:
         try:

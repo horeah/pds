@@ -4,6 +4,8 @@ import pickle
 import argparse
 import ast
 import importlib
+import psutil
+import contextlib
 from pathlib import Path
 from itertools import chain
 
@@ -44,6 +46,9 @@ def main():
     parser_files.add_argument('path', nargs='*', default=[Path()], type=Path)
     parser_files.add_argument('-R', '--recursive', action='store_true')
 
+    parser_procs = subparsers.add_parser('procs', help='Create pds stream from processes')
+    parser_procs.add_argument('-e', '--ignore-exception', action='store')
+
     args = parser.parse_args()
     if not hasattr(args, 'ignore_exception'):
         args.ignore_exception = False
@@ -66,7 +71,7 @@ def main():
         sys.stdin.reconfigure(newline=args.separator)
     if args.mode == 'to-text':
         sys.stdout.reconfigure(newline=args.separator)
-        
+
     if args.mode == 'from-text' or args.input == 'text':
         def read_line():
             l = sys.stdin.readline()
@@ -167,8 +172,13 @@ def main():
                     else:
                         paths = chain(paths, iter((path,)))
             it = paths
+        case 'procs':
+            def dummy_lock(proc):
+                proc._lock = contextlib.nullcontext()
+                return proc            
+            it = (dummy_lock(proc) for proc in psutil.process_iter())
 
-    if args.mode in ['from-text', 'to-text', 'files']:
+    if args.mode in ['from-text', 'to-text', 'files', 'procs']:
         args.mode = 'each'
         args.expression = 'x'
 
@@ -202,17 +212,6 @@ def main():
                     output(r)
     except BrokenPipeError:
         # Consumer has terminated
-        pass
-
-
-class _DummyContext(object):
-    """
-    No-op context replacement (to allow pickling) for e.g. psutil.Process._lock
-    """
-    def __enter__(*args):
-        pass
-
-    def __exit__(*args):
         pass
 
 
