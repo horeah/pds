@@ -21,7 +21,7 @@ class TestPdsPaths(unittest.TestCase):
     """
     Integration tests for the pds-files source script
     """
-    def test_paths(self):
+    def test_paths_from_args(self):
         self.assertEqual(pds_files('tests/paths'),
                          list(Path('tests/paths').glob('*')))
         self.assertEqual(pds_files('tests/paths/*.txt'),
@@ -30,6 +30,9 @@ class TestPdsPaths(unittest.TestCase):
                          list(Path('tests').glob('**/*')))
         self.assertEqual(pds_files(str(Path().absolute())),
                          list(p.absolute() for p in Path().glob('*')))
+
+    def test_pats_from_stdin(self):
+       pass
                          
         
 

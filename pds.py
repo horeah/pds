@@ -43,7 +43,7 @@ def main():
                                  choices=('lf', 'cr', 'crlf', 'auto'), default='auto')
 
     parser_files = subparsers.add_parser('files', help='Create pds stream from files')
-    parser_files.add_argument('path', nargs='*', default=[Path()], type=Path)
+    parser_files.add_argument('path', nargs='*', type=Path)
     parser_files.add_argument('-R', '--recursive', action='store_true')
 
     parser_procs = subparsers.add_parser('procs', help='Create pds stream from processes')
@@ -138,40 +138,47 @@ def main():
 
     _swallow_broken_pipe_message()
 
+    def iterator():
+        while True:
+            try:
+                yield input()
+            except EOFError:
+                break
+
     match args.mode:
         case 'none':
             pass
         case 'each' | 'filter' | 'iter' | 'list' | 'from-text' | 'to-text':
-            def iterator():
-                while True:
-                    try:
-                        yield input()
-                    except EOFError:
-                        break
             it = iterator()
         case 'files':
-            paths = iter(())
-            if sys.platform == 'win32':
-                for path in args.path:
-                    if '*' in str(path) or '?' in str(path):
-                        if path.is_absolute():
-                            anchor = Path(path.anchor)
-                            paths = chain(paths,
-                                        (anchor / p for p in anchor.glob('/'.join(path.parts[1:]))))
+            if os.isatty(sys.stdin.fileno()):
+                if not args.path:
+                    args.path = [Path()]
+                paths = iter(())
+                if sys.platform == 'win32':
+                    for path in args.path:
+                        if '*' in str(path) or '?' in str(path):
+                            if path.is_absolute():
+                                anchor = Path(path.anchor)
+                                paths = chain(paths,
+                                            (anchor / p for p in anchor.glob('/'.join(path.parts[1:]))))
+                            else:
+                                paths = chain(paths, (p for p in Path().glob(str(path))))
                         else:
-                            paths = chain(paths, (p for p in Path().glob(str(path))))
-                    else:
+                            if path.is_dir():
+                                paths = chain(paths, (p for p in path.glob('**/*' if args.recursive else '*')))
+                            else:
+                                paths = chain(paths, iter((path,)))
+                else:
+                    for path in args.path:
                         if path.is_dir():
                             paths = chain(paths, (p for p in path.glob('**/*' if args.recursive else '*')))
                         else:
                             paths = chain(paths, iter((path,)))
+                it = paths
             else:
-                for path in args.path:
-                    if path.is_dir():
-                        paths = chain(paths, (p for p in path.glob('**/*' if args.recursive else '*')))
-                    else:
-                        paths = chain(paths, iter((path,)))
-            it = paths
+                assert not args.path, 'Cannot use path argument and stdin at the same time'
+                it = (Path(p) for p in iterator())
         case 'procs':
             def dummy_lock(proc):
                 proc._lock = contextlib.nullcontext()
