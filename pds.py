@@ -6,8 +6,9 @@ import ast
 import importlib
 import psutil
 import contextlib
-from pathlib import Path
+import itertools
 from itertools import chain
+from pathlib import Path
 
 
 def main():
@@ -190,7 +191,6 @@ def main():
         args.expression = 'x'
 
     modules = import_modules(args.expression)
-
     try:
         match args.mode:
             case 'none':
@@ -210,8 +210,14 @@ def main():
                     if f and f != _EXCEPTION_IN_EXPRESSION:
                         output(x)
             case 'iter' | 'list':
-                r = eval_expr(args.expression, modules,
-                              {'it': it} if args.mode == 'iter' else {'l': list(it)})
+                if args.mode == 'iter':
+                    vars = {'it': it}
+                    modules.update({name: value
+                                    for name, value in itertools.__dict__.items()
+                                    if not name.startswith('_')})
+                else:
+                    vars = {'l': list(it)}
+                r = eval_expr(args.expression, modules, vars)
                 if hasattr(r, '__iter__') and not isinstance(r, str):
                     for e in r:
                         output(e)

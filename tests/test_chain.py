@@ -1,6 +1,5 @@
 import unittest
 import sys
-import itertools
 from pathlib import Path
 from subprocess import Popen, PIPE
 
@@ -29,7 +28,7 @@ class TestChain(unittest.TestCase):
 
     def test_broken_pipe(self):
         self.assertEqual(pds_chain([['none', 'iter(range(10000))'],
-                                    ['iter', 'itertools.islice(it, 4)']]),
+                                    ['iter', 'islice(it, 4)']]),
                          ['0', '1', '2', '3'])
         
 
