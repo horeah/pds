@@ -29,6 +29,8 @@ def main():
     parser_filter.add_argument('expression', help='Expression to filter by')
     parser_filter.add_argument('-e', '--ignore-exception', action='store')
 
+    parser_count = subparsers.add_parser('count', help='Count objects')
+
     parser_iter = subparsers.add_parser('iter', help='Apply expression to whole input data as iterator')
     parser_iter.add_argument('expression', help='Expression to apply')
 
@@ -153,7 +155,7 @@ def main():
     match args.mode:
         case 'none':
             pass
-        case 'each' | 'filter' | 'iter' | 'list' | 'sort' | 'from-text' | 'to-text':
+        case 'each' | 'filter' | 'count' | 'iter' | 'list' | 'sort' | 'from-text' | 'to-text':
             it = iterator()
         case 'files':
             if os.isatty(sys.stdin.fileno()):
@@ -199,6 +201,10 @@ def main():
         if args.expression is not None:
             args.expression = f'lambda x: {args.expression}'
         args.expression = f'sorted(it, key={args.expression}, reverse={args.reverse})'
+
+    if args.mode == 'count':
+        args.mode = 'iter'
+        args.expression = f'sum(1 for _ in it)'
 
     modules = import_modules(args.expression)
     try:

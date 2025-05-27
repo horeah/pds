@@ -39,4 +39,13 @@ class TestChain(unittest.TestCase):
                                     ['sort', '--reverse', 'x']]),
                          [str(i) for i in range(99, -1, -1)])
 
+    def test_count(self):
+        self.assertEqual(pds_chain([['none', 'iter(range(100))'],
+                                    ['count']]),
+                         ['100'])
+        self.assertEqual(pds_chain([['none', 'iter(range(100))'],
+                                    ['filter', 'False'],
+                                    ['count']]),
+                         ['0'])
+
 
