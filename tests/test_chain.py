@@ -31,4 +31,12 @@ class TestChain(unittest.TestCase):
                                     ['iter', 'islice(it, 4)']]),
                          ['0', '1', '2', '3'])
         
+    def test_sort(self):
+        self.assertEqual(pds_chain([['none', 'iter(range(100))'],
+                                    ['sort']]),
+                         [str(i) for i in range(100)])
+        self.assertEqual(pds_chain([['none', 'iter(range(100))'],
+                                    ['sort', '--reverse', 'x']]),
+                         [str(i) for i in range(99, -1, -1)])
+
 

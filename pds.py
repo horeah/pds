@@ -35,6 +35,10 @@ def main():
     parser_list = subparsers.add_parser('list', help='Apply expression to whole input data as list')
     parser_list.add_argument('expression', help='Expression to apply')
 
+    parser_sort = subparsers.add_parser('sort', help='Sort objects using expression as key')
+    parser_sort.add_argument('expression', help='Expression to use as key', nargs='?', default=None)
+    parser_sort.add_argument('-r', '--reverse', action='store_true')
+
     parser_from_text = subparsers.add_parser('from-text', help='Create pds stream from input text')
     parser_from_text.add_argument('-s', '--separator', help='Separator for text input', 
                                   choices=('lf', 'cr', 'crlf', 'auto'), default='auto')
@@ -149,7 +153,7 @@ def main():
     match args.mode:
         case 'none':
             pass
-        case 'each' | 'filter' | 'iter' | 'list' | 'from-text' | 'to-text':
+        case 'each' | 'filter' | 'iter' | 'list' | 'sort' | 'from-text' | 'to-text':
             it = iterator()
         case 'files':
             if os.isatty(sys.stdin.fileno()):
@@ -189,6 +193,12 @@ def main():
     if args.mode in ['from-text', 'to-text', 'files', 'procs']:
         args.mode = 'each'
         args.expression = 'x'
+
+    if args.mode == 'sort':
+        args.mode = 'iter'
+        if args.expression is not None:
+            args.expression = f'lambda x: {args.expression}'
+        args.expression = f'sorted(it, key={args.expression}, reverse={args.reverse})'
 
     modules = import_modules(args.expression)
     try:
