@@ -28,3 +28,16 @@ class TestPdsProcs(unittest.TestCase):
             self.assertEqual(procs[0].name(), 'System Idle Process')
         else:
             self.assertEqual(procs[0].pid, 1)
+
+    def test_user_procs(self):
+        procs = pds_procs('--current-user')
+        self.assertTrue(psutil.Process() in procs)
+
+    def test_system_procs(self):
+        if sys.platform == 'win32':
+            procs = pds_procs('--user', '"NT AUTHORITY\\SYSTEM"')
+            self.assertEqual(procs[0].pid, 0)
+        else:
+            procs = pds_procs('--user', 'root')
+            self.assertEqual(procs[0].pid, 1)
+

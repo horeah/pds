@@ -55,6 +55,9 @@ def main():
 
     parser_procs = subparsers.add_parser('procs', help='Create pds stream from processes')
     parser_procs.add_argument('-e', '--ignore-exception', action='store')
+    parser_procs.add_argument('-u', '--user', help='only processes belonging to USER', action='store')
+    parser_procs.add_argument('-U', '--current-user', help='only processes belonging to the current user', 
+                              action='store_const', const=psutil.Process().username(), dest='user')
 
     args = parser.parse_args()
     if not hasattr(args, 'ignore_exception'):
@@ -189,8 +192,16 @@ def main():
         case 'procs':
             def dummy_lock(proc):
                 proc._lock = contextlib.nullcontext()
-                return proc            
-            it = (dummy_lock(proc) for proc in psutil.process_iter())
+                return proc
+
+            def belongs_to_user(proc, user):
+                try:
+                    return proc.username() == user
+                except psutil.Error:
+                    return False
+
+            it = (dummy_lock(proc) for proc in psutil.process_iter()
+                  if not args.user or belongs_to_user(proc, args.user))
 
     if args.mode in ['from-text', 'to-text', 'files', 'procs']:
         args.mode = 'each'
