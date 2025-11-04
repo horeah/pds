@@ -20,6 +20,9 @@ def add_exceptions_arguments(parser):
                         action='store_const',
                         const='Exception',
                         dest='ignore_exception')
+    parser.add_argument('-q', '--quiet',
+                        help = 'suppress error messages',
+                        action='store_true')
 
 
 def main():
@@ -134,7 +137,10 @@ def main():
                 pass
         return modules
 
-    _EXCEPTION_IN_EXPRESSION = object()
+    class ExceptionMarker(object):
+        def __init__(self, exception):
+            self.exception = exception
+
     if args.ignore_exception:
         modules = import_modules(args.ignore_exception)
         exc_type = eval(args.ignore_exception, modules)
@@ -143,13 +149,16 @@ def main():
             """Eval expression and return a marker value if an exception was raised"""
             try:
                 return eval(expr, globals, locals)
-            except exc_type:
-                return _EXCEPTION_IN_EXPRESSION
+            except exc_type as e:
+                return ExceptionMarker(e)
 
         def ignore_exception_marker(func):
             """Don't call the target function if the argument is an exception marker"""
             def wrapper(arg):
-                if arg != _EXCEPTION_IN_EXPRESSION:
+                if isinstance(arg, ExceptionMarker):
+                    if not args.quiet:
+                        print(arg.exception, file=sys.stderr)
+                else:
                     func(arg)
             return wrapper
 
@@ -246,7 +255,7 @@ def main():
             case 'filter':
                 for i, x in enumerate(it):
                     f = eval_expr(args.expression, modules, {'i': i, 'x': x})
-                    if f and f != _EXCEPTION_IN_EXPRESSION:
+                    if f and not isinstance(f, ExceptionMarker):
                         output(x)
             case 'iter' | 'list':
                 if args.mode == 'iter':
