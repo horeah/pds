@@ -11,6 +11,17 @@ from itertools import chain
 from pathlib import Path
 
 
+def add_exceptions_arguments(parser):
+    parser.add_argument('-e', '--ignore-exception', 
+                        help = 'ignore exceptions of type IGNORE_EXCEPTION',
+                        action='store')
+    parser.add_argument('-E', '--ignore-all-exceptions', 
+                        help = 'ignore all exceptions',
+                        action='store_const',
+                        const='Exception',
+                        dest='ignore_exception')
+
+
 def main():
     parser = argparse.ArgumentParser(prog='pds')
     parser.add_argument('--input', choices=('auto', 'object', 'text'), default='auto')
@@ -19,15 +30,15 @@ def main():
 
     parser_none = subparsers.add_parser('none', help='Create pds stream from expression')
     parser_none.add_argument('expression', help='Expression to evaluate')
-    parser_none.add_argument('-e', '--ignore-exception', action='store')
+    add_exceptions_arguments(parser_none)
 
     parser_each = subparsers.add_parser('each', help='Apply expression to each object')
     parser_each.add_argument('expression', help='Expression to apply')
-    parser_each.add_argument('-e', '--ignore-exception', action='store')
+    add_exceptions_arguments(parser_each)
 
     parser_filter = subparsers.add_parser('filter', help='Filter objects by expression')
     parser_filter.add_argument('expression', help='Expression to filter by')
-    parser_filter.add_argument('-e', '--ignore-exception', action='store')
+    add_exceptions_arguments(parser_filter)
 
     parser_count = subparsers.add_parser('count', help='Count objects')
 
@@ -54,10 +65,11 @@ def main():
     parser_files.add_argument('-R', '--recursive', action='store_true')
 
     parser_procs = subparsers.add_parser('procs', help='Create pds stream from processes')
-    parser_procs.add_argument('-e', '--ignore-exception', action='store')
+
     parser_procs.add_argument('-u', '--user', help='only processes belonging to USER', action='store')
     parser_procs.add_argument('-U', '--current-user', help='only processes belonging to the current user', 
                               action='store_const', const=psutil.Process().username(), dest='user')
+    add_exceptions_arguments(parser_procs)
 
     args = parser.parse_args()
     if not hasattr(args, 'ignore_exception'):
