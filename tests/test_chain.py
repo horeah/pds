@@ -9,7 +9,7 @@ def pds_chain(cmds):
     for seg in segs:
         tokens += seg
         tokens.append('|')
-    tokens += ['pds', 'to-text']
+    tokens += [f'{sys.executable}', 'pds.py', 'to-text']
     cmd = ' '.join(f'"{t}"' if t != '|' else f'{t}' for t in tokens)
     process = Popen(cmd, stdout=PIPE, shell=True, text=True)
     stdout, _ = process.communicate()

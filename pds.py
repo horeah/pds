@@ -83,7 +83,7 @@ def main():
 
     if not os.isatty(sys.stdin.fileno()) and args.input == 'auto':
         bytes = sys.stdin.buffer.peek(2)
-        args.input = 'object' if bytes.startswith(b'\x80\x04') else 'text'
+        args.input = 'object' if bytes.startswith(pickle.dumps(None)[:2]) else 'text'
 
     if args.mode in ['from-text', 'to-text']:
         args.separator = {
