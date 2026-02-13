@@ -10,6 +10,8 @@ import itertools
 from itertools import chain
 from pathlib import Path
 
+PDS_VERSION = '0.1.0'
+
 
 def add_exceptions_arguments(parser):
     parser.add_argument('-e', '--ignore-exception', 
@@ -73,6 +75,8 @@ def main():
     parser_procs.add_argument('-U', '--current-user', help='only processes belonging to the current user', 
                               action='store_const', const=psutil.Process().username(), dest='user')
     add_exceptions_arguments(parser_procs)
+
+    parser.add_argument('--version', action='version', version=f'%(prog)s {PDS_VERSION}')
 
     args = parser.parse_args()
     if not hasattr(args, 'ignore_exception'):
