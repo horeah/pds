@@ -14,7 +14,8 @@ The main differences compared to other "python code in the command line" tools s
 2. Lots of built-in "modes" (commands) require less typing and lead to more expressive command chains
 3. Using shell pipelines directly allows complex commands to be developed incrementally by appending to the existing chain
 4. "Text" vs. "Python object" input/output selection for ~smooth interaction with exiting tools
-5. Works on Linux and Windows
+5. JSON input/output makes it easy to manipulate JSON data directly (no need to learn `jq`)
+6. Works on Linux and Windows
 
 
 # Examples
@@ -51,9 +52,12 @@ pds procs -U | pds filter -E "x.name() == 'python'" | pds each "x.kill()"
 ## List all users (sorted alphabetically) who have python3 processes running on this machine
 ```bash
 # Note: this bash version is not very robust, e.g. a user named "python3" will break it!
-# ps -eo user,cmd | grep python3 | awk '{print $1}' | sort -u
+# ps -eo user,comm | grep python3 | awk '{print $1}' | sort -u
 # cmd.exe: ???
 pds procs | pds filter -Eq "x.name() == 'python3'" | pds each -Eq "x.username()" | pds iter set(it) | pds sort
+
+# Alternate form using `jc ps` instead of `pds procs`
+jc ps -eo user,comm | pds --input=json filter "x['command'] == 'python3'" | pds each "x['user']" | pds iter "set(it)" | pds sort
 ```
 
 
@@ -70,11 +74,11 @@ This assumes python3 is in your $PATH.
 2. Unpack the `pds` directory
 3. Add it to your `$PATH`
 4. (Linux) Make sure that the `pds` script is executable: `cd pds && chmod a+x ./pds`
-5. Install dependencies: `pip install psutil`
+5. Install dependencies: `pip install psutil ijson`
 
 
 # Open TODOs
- * Additional input/output types: `json`, `csv`, ...
+ * Additional input/output types: `csv`, ...
  * Additional modes: `count`, `apply`, `check`, `flatten`, ...
  * Improved exception handling
  * Parallel execution

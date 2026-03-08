@@ -1,6 +1,8 @@
 import sys
 import os
 import pickle
+import ijson
+import json
 import argparse
 import ast
 import importlib
@@ -10,7 +12,7 @@ import itertools
 from itertools import chain
 from pathlib import Path
 
-PDS_VERSION = '0.1.0'
+PDS_VERSION = '0.1.1'
 
 
 def add_exceptions_arguments(parser):
@@ -29,8 +31,8 @@ def add_exceptions_arguments(parser):
 
 def main():
     parser = argparse.ArgumentParser(prog='pds')
-    parser.add_argument('--input', choices=('auto', 'object', 'text'), default='auto')
-    parser.add_argument('--output', choices=('auto', 'object', 'text'), default='auto')
+    parser.add_argument('--input', choices=('auto', 'object', 'text', 'json'), default='auto')
+    parser.add_argument('--output', choices=('auto', 'object', 'text', 'json'), default='auto')
     subparsers = parser.add_subparsers(dest='mode', title='modes')
 
     parser_none = subparsers.add_parser('none', help='Create pds stream from expression')
@@ -108,11 +110,28 @@ def main():
                 raise EOFError
             return l.strip()
         input = read_line
+    elif args.input == 'json':
+        json_iterator = ijson.items(sys.stdin, 'item')
+        def read_json_object():
+            try:
+                return next(json_iterator)
+            except StopIteration:
+                raise EOFError
+        input = read_json_object
     else: 
         input = lambda: pickle.load(sys.stdin.buffer)
 
     if args.mode == 'to-text' or args.output == 'text':
         output = print
+    elif args.output == 'json':
+        print('[', end='')
+        comma = False
+        def write_json_object(o):
+            nonlocal comma
+            sys.stdout.write(', ' if comma else '')
+            json.dump(o, sys.stdout)
+            comma = True
+        output = write_json_object
     else:
         output = lambda o: pickle.dump(o, sys.stdout.buffer)
 
@@ -275,6 +294,9 @@ def main():
                         output(e)
                 else:
                     output(r)
+        if args.output == 'json':
+            print(']')
+
     except BrokenPipeError:
         # Consumer has terminated
         pass
