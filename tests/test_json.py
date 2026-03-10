@@ -1,10 +1,17 @@
 import json
+from types import SimpleNamespace
 import unittest
 import sys
 from subprocess import Popen, PIPE
 
 def pds_json(mode, expr, input, opts=[]):
     process = Popen([sys.executable, 'pds.py', '--input=json', '--output=json', mode, *opts, expr],
+                    stdin=PIPE, stdout=PIPE, text=True)
+    stdout, _ = process.communicate(input)
+    return stdout
+
+def pds_from_json(input, opts=[]):
+    process = Popen([sys.executable, 'pds.py', '--output=text', 'from-json', *opts],
                     stdin=PIPE, stdout=PIPE, text=True)
     stdout, _ = process.communicate(input)
     return stdout
@@ -22,6 +29,12 @@ class TestJson(unittest.TestCase):
     def test_json(self):
         self.assertEqual(pds_json('each', 'x', json.dumps(input_objects)), json.dumps(input_objects) + '\n')
         self.assertEqual(pds_json('each', 'x["size"]', json.dumps(input_objects)), '[124, 8]\n')
+
+    def test_from_json(self):
+        self.assertEqual(pds_from_json(json.dumps(input_objects)), 
+                         '\n'.join(str(obj) for obj in input_objects) + '\n')
+        self.assertEqual(pds_from_json(json.dumps(input_objects), opts=['--namespace']), 
+                         '\n'.join(str(SimpleNamespace(**obj)) for obj in input_objects) + '\n')
 
 
 if __name__ == '__main__':

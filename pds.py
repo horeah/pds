@@ -1,6 +1,7 @@
 import sys
 import os
 import pickle
+from types import SimpleNamespace
 import ijson
 import json
 import argparse
@@ -67,6 +68,10 @@ def main():
     parser_to_text.add_argument('-s', '--separator', help='Separator for text output',
                                  choices=('lf', 'cr', 'crlf', 'auto'), default='auto')
 
+    parser_from_json = subparsers.add_parser('from-json', help='Create pds stream from json array')
+    parser_from_json.add_argument('-n', '--namespace', help='Use namespace instead of dictionary for json objects', 
+                                  action='store_true')
+
     parser_files = subparsers.add_parser('files', help='Create pds stream from files')
     parser_files.add_argument('path', nargs='*', type=Path)
     parser_files.add_argument('-R', '--recursive', action='store_true')
@@ -81,8 +86,17 @@ def main():
     parser.add_argument('--version', action='version', version=f'%(prog)s {PDS_VERSION}')
 
     args = parser.parse_args()
+    if args.mode == 'from-text':
+        args.input = 'text'
+    if args.mode == 'to-text':
+        args.output = 'text'
+    if args.mode == 'from-json':
+        args.input = 'json'
+
     if not hasattr(args, 'ignore_exception'):
         args.ignore_exception = False
+    if not hasattr(args, 'namespace'):
+        args.namespace = False
 
     if args.output == 'auto':
         args.output = 'text' if os.isatty(sys.stdout.fileno()) else 'object'
@@ -103,7 +117,7 @@ def main():
     if args.mode == 'to-text':
         sys.stdout.reconfigure(newline=args.separator)
 
-    if args.mode == 'from-text' or args.input == 'text':
+    if args.input == 'text':
         def read_line():
             l = sys.stdin.readline()
             if not l:
@@ -112,6 +126,14 @@ def main():
         input = read_line
     elif args.input == 'json':
         json_iterator = ijson.items(sys.stdin, 'item')
+        if args.namespace:
+            def dict_to_namespace(obj):
+                if isinstance(obj, dict):
+                    return SimpleNamespace(**{k: dict_to_namespace(v) for k, v in obj.items()})
+                elif isinstance(obj, list):
+                    return [dict_to_namespace(item) for item in obj]
+                return obj
+            json_iterator = (dict_to_namespace(o) for o in json_iterator)
         def read_json_object():
             try:
                 return next(json_iterator)
@@ -202,7 +224,7 @@ def main():
     match args.mode:
         case 'none':
             pass
-        case 'each' | 'filter' | 'count' | 'iter' | 'list' | 'sort' | 'from-text' | 'to-text':
+        case 'each' | 'filter' | 'count' | 'iter' | 'list' | 'sort' | 'from-text' | 'to-text' | 'from-json':
             it = iterator()
         case 'files':
             if os.isatty(sys.stdin.fileno()):
@@ -247,7 +269,7 @@ def main():
             it = (dummy_lock(proc) for proc in psutil.process_iter()
                   if not args.user or belongs_to_user(proc, args.user))
 
-    if args.mode in ['from-text', 'to-text', 'files', 'procs']:
+    if args.mode in ['from-text', 'to-text', 'from-json', 'files', 'procs']:
         args.mode = 'each'
         args.expression = 'x'
 
