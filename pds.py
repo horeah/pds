@@ -71,6 +71,9 @@ def main():
     parser_from_json = subparsers.add_parser('from-json', help='Create pds stream from json array')
     parser_from_json.add_argument('-n', '--namespace', help='Use namespace instead of dictionary for json objects', 
                                   action='store_true')
+    parser_to_json = subparsers.add_parser('to-json', help='Write pds stream as json array')
+    parser_to_json.add_argument('-p', '--pretty', help='Pretty-print json output', action='store_true', 
+                                default=False)
 
     parser_files = subparsers.add_parser('files', help='Create pds stream from files')
     parser_files.add_argument('path', nargs='*', type=Path)
@@ -92,11 +95,15 @@ def main():
         args.output = 'text'
     if args.mode == 'from-json':
         args.input = 'json'
+    if args.mode == 'to-json':
+        args.output = 'json'
 
     if not hasattr(args, 'ignore_exception'):
         args.ignore_exception = False
     if not hasattr(args, 'namespace'):
         args.namespace = False
+    if not hasattr(args, 'pretty'):
+        args.pretty = False
 
     if args.output == 'auto':
         args.output = 'text' if os.isatty(sys.stdout.fileno()) else 'object'
@@ -145,13 +152,17 @@ def main():
 
     if args.mode == 'to-text' or args.output == 'text':
         output = print
-    elif args.output == 'json':
-        print('[', end='')
+    elif args.mode == 'to-json' or args.output == 'json':
+        print('[', end='\n' if args.pretty else '')
         comma = False
         def write_json_object(o):
             nonlocal comma
-            sys.stdout.write(', ' if comma else '')
-            json.dump(o, sys.stdout)
+            if comma:
+                sys.stdout.write(',' + ('\n' if args.pretty else ' '))
+            out = json.dumps(o, default=lambda obj: obj.__dict__ if hasattr(obj, '__dict__') else str(obj), 
+                             indent='\t' if args.pretty else None)
+            out = '\n'.join((('\t' if args.pretty else '') + line for line in out.splitlines()))
+            sys.stdout.write(out)
             comma = True
         output = write_json_object
     else:
@@ -224,7 +235,7 @@ def main():
     match args.mode:
         case 'none':
             pass
-        case 'each' | 'filter' | 'count' | 'iter' | 'list' | 'sort' | 'from-text' | 'to-text' | 'from-json':
+        case 'each' | 'filter' | 'count' | 'iter' | 'list' | 'sort' | 'from-text' | 'to-text' | 'from-json' | 'to-json':
             it = iterator()
         case 'files':
             if os.isatty(sys.stdin.fileno()):
@@ -269,7 +280,7 @@ def main():
             it = (dummy_lock(proc) for proc in psutil.process_iter()
                   if not args.user or belongs_to_user(proc, args.user))
 
-    if args.mode in ['from-text', 'to-text', 'from-json', 'files', 'procs']:
+    if args.mode in ['from-text', 'to-text', 'from-json', 'to-json', 'files', 'procs']:
         args.mode = 'each'
         args.expression = 'x'
 
@@ -317,7 +328,7 @@ def main():
                 else:
                     output(r)
         if args.output == 'json':
-            print(']')
+            print('\n]' if args.pretty else ']')
 
     except BrokenPipeError:
         # Consumer has terminated
