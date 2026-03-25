@@ -39,7 +39,7 @@ class TestJson(unittest.TestCase):
     def test_from_json(self):
         self.assertEqual(pds_from_json(json.dumps(input_objects)), 
                          '\n'.join(str(obj) for obj in input_objects) + '\n')
-        self.assertEqual(pds_from_json(json.dumps(input_objects), opts=['--namespace']), 
+        self.assertEqual(pds_from_json(json.dumps(input_objects), opts=['--as-namespace']), 
                          '\n'.join(str(SimpleNamespace(**obj)) for obj in input_objects) + '\n')
         
     def test_to_json(self):

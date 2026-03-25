@@ -41,3 +41,10 @@ class TestPdsProcs(unittest.TestCase):
             procs = pds_procs('--user', 'root')
             self.assertEqual(procs[0].pid, 1)
 
+    def test_procs_as_dict(self):
+        procs = pds_procs('--current-user', '--as-dict')
+        self.assertTrue(any(proc['pid'] == psutil.Process().pid for proc in procs))
+
+    def test_procs_as_namespace(self):
+        procs = pds_procs('--current-user', '--as-namespace')
+        self.assertTrue(any(proc.pid == psutil.Process().pid for proc in procs))

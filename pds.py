@@ -69,8 +69,8 @@ def main():
                                  choices=('lf', 'cr', 'crlf', 'auto'), default='auto')
 
     parser_from_json = subparsers.add_parser('from-json', help='Create pds stream from json array')
-    parser_from_json.add_argument('-n', '--namespace', help='Use namespace instead of dictionary for json objects', 
-                                  action='store_true')
+    parser_from_json.add_argument('-n', '--as-namespace', help='Use namespace instead of dictionary for json objects',
+                                  dest='from_json_as_namespace', action='store_true')
     parser_to_json = subparsers.add_parser('to-json', help='Write pds stream as json array')
     parser_to_json.add_argument('-p', '--pretty', help='Pretty-print json output', action='store_true', 
                                 default=False)
@@ -80,10 +80,15 @@ def main():
     parser_files.add_argument('-R', '--recursive', action='store_true')
 
     parser_procs = subparsers.add_parser('procs', help='Create pds stream from processes')
-
     parser_procs.add_argument('-u', '--user', help='only processes belonging to USER', action='store')
     parser_procs.add_argument('-U', '--current-user', help='only processes belonging to the current user', 
                               action='store_const', const=psutil.Process().username(), dest='user')
+    parser_procs.add_argument('-d', '--as-dict', help='output as dict with specified fields (comma-separated)',
+                              dest='procs_as_dict', action='store',
+                              nargs='?', const='pid,name,username,cmdline')
+    parser_procs.add_argument('-n', '--as-namespace', help='output as namespace with specified fields (comma-separated)',
+                              dest='procs_as_namespace', action='store',
+                              nargs='?', const='pid,name,username,cmdline')
     add_exceptions_arguments(parser_procs)
 
     parser.add_argument('--version', action='version', version=f'%(prog)s {PDS_VERSION}')
@@ -100,8 +105,8 @@ def main():
 
     if not hasattr(args, 'ignore_exception'):
         args.ignore_exception = False
-    if not hasattr(args, 'namespace'):
-        args.namespace = False
+    if not hasattr(args, 'from_json_as_namespace'):
+        args.from_json_as_namespace = False
     if not hasattr(args, 'pretty'):
         args.pretty = False
 
@@ -133,7 +138,7 @@ def main():
         input = read_line
     elif args.input == 'json':
         json_iterator = ijson.items(sys.stdin, 'item')
-        if args.namespace:
+        if args.from_json_as_namespace:
             def dict_to_namespace(obj):
                 if isinstance(obj, dict):
                     return SimpleNamespace(**{k: dict_to_namespace(v) for k, v in obj.items()})
@@ -277,7 +282,15 @@ def main():
                 except psutil.Error:
                     return False
 
-            it = (dummy_lock(proc) for proc in psutil.process_iter()
+            def converted_proc(proc):
+                if args.procs_as_dict is not None:
+                    return proc.as_dict(attrs=args.procs_as_dict.split(','))
+                elif args.procs_as_namespace is not None:
+                    return SimpleNamespace(**proc.as_dict(attrs=args.procs_as_namespace.split(',')))
+                else:
+                    return dummy_lock(proc)
+
+            it = (converted_proc(proc) for proc in psutil.process_iter()
                   if not args.user or belongs_to_user(proc, args.user))
 
     if args.mode in ['from-text', 'to-text', 'from-json', 'to-json', 'files', 'procs']:
