@@ -7,7 +7,7 @@ from subprocess import Popen, PIPE
 
 def pds_files(*args):
     args_str = ' '.join([*args])
-    process = Popen(f'"{sys.executable}" pds.py files {args_str}', shell=True, stdout=PIPE)
+    process = Popen(f'"{sys.executable}" src/pds.py files {args_str}', shell=True, stdout=PIPE)
     result = []
     while True:
         try:

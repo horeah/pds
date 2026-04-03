@@ -1,0 +1,30 @@
+[project]
+name = "pds"
+version = "0.1.1"
+description = "Manipulate pickled Python objects through shell pipes"
+readme = "README.md"
+
+authors = [
+  { name="Horea Haitonic", email="horeah@gmail.com" },
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+requires-python = ">=3.10"
+dependencies = [
+    "psutil",
+    "ijson",
+]
+
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/horeah/pds"
+Issues = "https://github.com/horeah/pds/issues"
+
+[project.scripts]
+pds = "pds:main"

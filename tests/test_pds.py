@@ -5,7 +5,7 @@ from os import linesep
 
 
 def pds_text(mode, expr, lines, opts=[]):
-    process = Popen([sys.executable, 'pds.py', '--input=text', '--output=text', mode, *opts, expr],
+    process = Popen([sys.executable, 'src/pds.py', '--input=text', '--output=text', mode, *opts, expr],
                     stdin=PIPE, stdout=PIPE, text=True)
     stdout, _ = process.communicate(''.join(l + '\n' for l in lines))
     return stdout.split('\n')[:-1]

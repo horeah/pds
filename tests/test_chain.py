@@ -4,12 +4,12 @@ from pathlib import Path
 from subprocess import Popen, PIPE
 
 def pds_chain(cmds):
-    segs = [[f'{sys.executable}', 'pds.py', *a] for a in cmds]
+    segs = [[f'{sys.executable}', 'src/pds.py', *a] for a in cmds]
     tokens = []
     for seg in segs:
         tokens += seg
         tokens.append('|')
-    tokens += [f'{sys.executable}', 'pds.py', 'to-text']
+    tokens += [f'{sys.executable}', 'src/pds.py', 'to-text']
     cmd = ' '.join(f'"{t}"' if t != '|' else f'{t}' for t in tokens)
     process = Popen(cmd, stdout=PIPE, shell=True, text=True)
     stdout, _ = process.communicate()

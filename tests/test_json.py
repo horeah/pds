@@ -5,25 +5,25 @@ import sys
 from subprocess import Popen, PIPE
 
 def pds_json(mode, expr, input, opts=[]):
-    process = Popen([sys.executable, 'pds.py', '--input=json', '--output=json', mode, *opts, expr],
+    process = Popen([sys.executable, 'src/pds.py', '--input=json', '--output=json', mode, *opts, expr],
                     stdin=PIPE, stdout=PIPE, text=True)
     stdout, _ = process.communicate(input)
     return stdout
 
 def pds_from_json(input, opts=[]):
-    process = Popen([sys.executable, 'pds.py', '--output=text', 'from-json', *opts],
+    process = Popen([sys.executable, 'src/pds.py', '--output=text', 'from-json', *opts],
                     stdin=PIPE, stdout=PIPE, text=True)
     stdout, _ = process.communicate(input)
     return stdout
 
 def pds_to_json(input, opts=[]):
-    process = Popen([sys.executable, 'pds.py', '--input=json', 'to-json', *opts],
+    process = Popen([sys.executable, 'src/pds.py', '--input=json', 'to-json', *opts],
                     stdin=PIPE, stdout=PIPE, text=True)
     stdout, _ = process.communicate(input)
     return stdout
 
 input_objects = [
-    {"file": "pds.py", "size": 124},
+    {"file": "src/pds.py", "size": 124},
     {"file": "tests/test_chain.py", "size": 8}
 ]
 

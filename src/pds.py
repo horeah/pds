@@ -12,8 +12,8 @@ import contextlib
 import itertools
 from itertools import chain
 from pathlib import Path
-
-PDS_VERSION = '0.1.1'
+from importlib.metadata import version
+__version__ = version('pds')
 
 
 def add_exceptions_arguments(parser):
@@ -91,7 +91,7 @@ def main():
                               nargs='?', const='pid,name,username,cmdline')
     add_exceptions_arguments(parser_procs)
 
-    parser.add_argument('--version', action='version', version=f'%(prog)s {PDS_VERSION}')
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
 
     args = parser.parse_args()
     if args.mode == 'from-text':
