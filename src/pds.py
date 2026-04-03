@@ -34,7 +34,7 @@ def main():
     parser = argparse.ArgumentParser(prog='pds')
     parser.add_argument('--input', choices=('auto', 'object', 'text', 'json'), default='auto')
     parser.add_argument('--output', choices=('auto', 'object', 'text', 'json'), default='auto')
-    subparsers = parser.add_subparsers(dest='mode', title='modes')
+    subparsers = parser.add_subparsers(dest='mode', title='modes', required=True)
 
     parser_none = subparsers.add_parser('none', help='Create pds stream from expression')
     parser_none.add_argument('expression', help='Expression to evaluate')
