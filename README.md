@@ -68,18 +68,9 @@ The implementation is pure python and does a lot of pickling/unpickling, so if y
 care about execution speed, resource usage etc. then **pds** is probably not a good choice.
 
 
-# Installation
-This assumes python3 is in your $PATH.
-1. Download the release zip
-2. Unpack the `pds` directory
-3. Add it to your `$PATH`
-4. (Linux) Make sure that the `pds` script is executable: `cd pds && chmod a+x ./pds`
-5. Install dependencies: `pip install psutil ijson`
-
-
 # Open TODOs
  * Additional input/output types: `csv`, ...
- * Additional modes: `count`, `apply`, `check`, `flatten`, ...
+ * Additional modes: `apply`, `check`, `flatten`, ...
  * Improved exception handling
  * Parallel execution
  * ...
